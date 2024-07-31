@@ -83,208 +83,53 @@
 
 1. **Actualizar `main.dart`** con el siguiente código:
 
-   ```dart
-   import 'package:flutter/material.dart';
-   import 'package:syncfusion_flutter_gauges/gauges.dart';
-   import 'mqtt_service.dart';
-
-   void main() {
-     runApp(const MyApp());
-   }
-
-   class MyApp extends StatelessWidget {
-     const MyApp({super.key});
-
-     @override
-     Widget build(BuildContext context) {
-       return MaterialApp(
-         title: 'Gauge MQTT App',
-         theme: ThemeData(
-           primarySwatch: Colors.blue,
-         ),
-         home: const GaugeScreen(),
-       );
-     }
-   }
-
-   class GaugeScreen extends StatefulWidget {
-     const GaugeScreen({super.key});
-
-     @override
-     _GaugeScreenState createState() => _GaugeScreenState();
-   }
-
-   class _GaugeScreenState extends State<GaugeScreen> {
-     late MqttService _mqttService;
-     double _temperature = 0.0;
-
-     @override
-     void initState() {
-       super.initState();
-       _mqttService = MqttService('broker.emqx.io', '');
-       _mqttService.getTemperatureStream().listen((temperature) {
-         setState(() {
-           _temperature = temperature;
-         });
-       });
-     }
-
-     @override
-     Widget build(BuildContext context) {
-       return Scaffold(
-         appBar: AppBar(
-           title: const Text('Temperature Gauge'),
-         ),
-         body: Center(
-           child: SfRadialGauge(
-             axes: <RadialAxis>[
-               RadialAxis(
-                 minimum: -20,
-                 maximum: 50,
-                 ranges: <GaugeRange>[
-                   GaugeRange(startValue: -20, endValue: 0, color: Colors.blue),
-                   GaugeRange(startValue: 0, endValue: 25, color: Colors.green),
-                   GaugeRange(startValue: 25, endValue: 50, color: Colors.red),
-                 ],
-                 pointers: <GaugePointer>[
-                   NeedlePointer(value: _temperature),
-                 ],
-                 annotations: <GaugeAnnotation>[
-                   GaugeAnnotation(
-                     widget: Text(
-                       '$_temperature°C',
-                       style: const TextStyle(
-                           fontSize: 20, fontWeight: FontWeight.bold),
-                     ),
-                     angle: 90,
-                     positionFactor: 0.5,
-                   ),
-                 ],
-               ),
-             ],
-           ),
-         ),
-       );
-     }
-   }
-   ```
-
-### Paso 5: Redirigir Puertos con `adb`
-
-1. **Abrir el Emulador** desde Android Studio (AVD Manager).
-
-2. **Redirigir Puertos con `adb`**:
-   - Abre una terminal y ejecuta el siguiente comando para redirigir los puertos necesarios:
-
-     ```sh
-     adb reverse tcp:1883 tcp:1883
-     ```
-
-### Paso 6: Ejecutar la Aplicación Flutter
-
-1. **Ejecutar tu aplicación** en el emulador:
-
-   ```sh
-   flutter run
-   ```
-
-### Explicación Detallada del Código
-
-#### `mqtt_service.dart`
-
-```dart
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
-
-class MqttService {
-  final MqttServerClient client;
-
-  // Constructor de MqttService que inicializa el cliente MQTT
-  MqttService(String server, String clientId)
-      : client = MqttServerClient(server, '') {
-    const sanitizedClientId = ''; // Asegura que el clientId sea válido
-
-    client.logging(on: true);
-    client.setProtocolV311(); // Configura el protocolo MQTT 3.1.1
-    client.keepAlivePeriod = 20; // Configura el periodo de keep alive
-
-    final connMessage = MqttConnectMessage()
-        .withClientIdentifier(sanitizedClientId)
-        .startClean()
-        .withWillQos(MqttQos.atLeastOnce);
-
-    client.connectionMessage = connMessage; // Asigna el mensaje de conexión
-  }
-
-  // Método que retorna un stream de datos de temperatura
-  Stream<double> getTemperatureStream() async* {
-    try {
-      await client.connect(); // Intenta conectar al servidor MQTT
-    } catch (e) {
-      client.disconnect();
-      return;
-    }
-
-    if (client.connectionStatus?.state == MqttConnectionState.connected) {
-      client.subscribe("temperature/topic", MqttQos.atLeastOnce);
-
-      // Escucha los mensajes entrantes y emite los valores de temperatura
-      await for (final c in client.updates!) {
-        final MqttPublishMessage recMess = c[0].payload as MqttPublishMessage;
-        final String pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-        yield double.tryParse(pt) ?? 0.0;
-      }
-    } else {
-      client.disconnect();
-    }
-  }
-}
-```
-
-#### `main.dart`
-
 ```dart
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_gauges/gauges.dart';
-import 'mqtt_service.dart';
+import 'package:syncfusion_flutter_gauges/gauges.dart'; // Importa la biblioteca para el gauge
+import 'mqtt_service.dart'; // Importa el servicio MQTT
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MyApp()); // Llama a runApp para iniciar la aplicación
 }
 
+// MyApp es un widget Stateless que define la estructura general de la aplicación
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gauge MQTT App',
+      title: 'Gauge MQTT App', // Título de la aplicación
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blue, // Tema principal de la aplicación
       ),
-      home: const GaugeScreen(),
+      home: const GaugeScreen(), // Define GaugeScreen como la pantalla principal
     );
   }
 }
 
+// GaugeScreen es un StatefulWidget que mostrará el gauge de temperatura
 class GaugeScreen extends StatefulWidget {
   const GaugeScreen({super.key});
 
   @override
-  _GaugeScreenState createState() => _GaugeScreenState();
+  _GaugeScreenState createState() => _GaugeScreenState(); // Crea el estado asociado a este widget
 }
 
+// _GaugeScreenState contiene el estado del widget GaugeScreen
 class _GaugeScreenState extends State<GaugeScreen> {
-  late MqttService _mqttService;
-  double _temperature = 0.0;
+  late MqttService _mqttService; // Declaración del servicio MQTT
+  double _temperature = 0.0; // Variable para almacenar la temperatura actual
 
   @override
   void initState() {
     super.initState();
-    _mqttService = MqttService('broker.emqx.io', ''); // Inicializa el servicio MQTT
+    // Inicializa el servicio MQTT con el broker y el clientId
+    _mqttService = MqttService('broker.emqx.io', '');
+    // Escucha el stream de temperatura y actualiza el estado cuando llegue un nuevo valor
     _mqttService.getTemperatureStream().listen((temperature) {
       setState(() {
-        _temperature = temperature; // Actualiza la temperatura cuando llega un nuevo valor
+        _temperature = temperature; // Actualiza la temperatura
       });
     });
   }
@@ -293,33 +138,37 @@ class _GaugeScreenState extends State<GaugeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Temperature Gauge'),
+        title: const Text('Temperature Gauge'), // Título de la barra de la aplicación
       ),
       body: Center(
+        // Contenedor principal de la pantalla
         child: SfRadialGauge(
+          // Widget para mostrar el gauge radial
           axes: <RadialAxis>[
             RadialAxis(
-              minimum: -20,
-              maximum: 50,
+              // Configuración del eje radial
+              minimum: -20, // Valor mínimo del gauge
+              maximum: 50, // Valor máximo del gauge
               ranges: <GaugeRange>[
-                GaugeRange(startValue: -20, endValue: 0, color: Colors.blue),
-                GaugeRange(startValue: 0, endValue: 25, color: Colors.green),
-                GaugeRange(startValue: 25, endValue: 50, color: Colors.red),
+                // Definición de rangos de colores en el gauge
+                GaugeRange(startValue: -20, endValue: 0, color: Colors.blue), // Rango azul para temperaturas frías
+                GaugeRange(startValue: 0, endValue: 25, color: Colors.green), // Rango verde para temperaturas moderadas
+                GaugeRange(startValue: 25, endValue: 50, color: Colors.red), // Rango rojo para temperaturas calientes
               ],
-              pointers: <Gauge
-
-Pointer>[
+              pointers: <GaugePointer>[
+                // Aguja del gauge que indica la temperatura actual
                 NeedlePointer(value: _temperature),
               ],
               annotations: <GaugeAnnotation>[
+                // Anotación que muestra el valor de la temperatura en el centro del gauge
                 GaugeAnnotation(
                   widget: Text(
-                    '$_temperature°C',
+                    '$_temperature°C', // Muestra la temperatura con un formato de texto
                     style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+                        fontSize: 20, fontWeight: FontWeight.bold), // Estilo del texto
                   ),
-                  angle: 90,
-                  positionFactor: 0.5,
+                  angle: 90, // Ángulo de la anotación
+                  positionFactor: 0.5, // Posición de la anotación en el gauge
                 ),
               ],
             ),
@@ -329,6 +178,7 @@ Pointer>[
     );
   }
 }
+
 ```
 
 ### Explicación Detallada de la Interfaz de Usuario
