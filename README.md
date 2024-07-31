@@ -219,8 +219,38 @@ class _GaugeScreenState extends State<GaugeScreen> {
     );
   }
 }
-
 ```
+
+### Explicación Detallada del Código con Comentarios
+
+- **Importaciones**:
+  - `flutter/material.dart`: Biblioteca principal de Flutter para construir la interfaz de usuario.
+  - `syncfusion_flutter_gauges/gauges.dart`: Biblioteca para crear el gauge.
+  - `mqtt_service.dart`: Servicio MQTT personalizado para manejar la conexión y suscripción a los mensajes.
+
+- **Función `main`**:
+  - `runApp(const MyApp())`: Inicia la aplicación Flutter, usando el widget `MyApp` como raíz.
+
+- **Clase `MyApp`**:
+  - `StatelessWidget`: Define un widget sin estado.
+  - `MaterialApp`: Configura la aplicación, incluyendo el tema y la pantalla principal (`GaugeScreen`).
+
+- **Clase `GaugeScreen`**:
+  - `StatefulWidget`: Define un widget con estado.
+  - `createState`: Método que crea y retorna una instancia del estado asociado (`_GaugeScreenState`).
+
+- **Clase `_GaugeScreenState`**:
+  - `late MqttService _mqttService`: Declara una variable para el servicio MQTT.
+  - `double _temperature = 0.0`: Declara una variable para almacenar la temperatura.
+
+  - `initState`: Método que se llama cuando el widget se inserta en el árbol de widgets. Aquí es donde inicializamos el servicio MQTT y comenzamos a escuchar los datos de temperatura.
+    - `MqttService('broker.emqx.io', '')`: Inicializa el servicio MQTT con el broker y un `clientId` vacío.
+    - `listen((temperature) { ... })`: Escucha el stream de temperatura y actualiza el estado cuando llega un nuevo valor.
+
+  - `build`: Método que construye la interfaz de usuario.
+    - `Scaffold`: Estructura básica de la pantalla con una barra de aplicación (`AppBar`) y un cuerpo (`body`).
+    - `SfRadialGauge`: Widget que muestra el gauge radial.
+      - `RadialAxis`: Configuración del eje radial del gauge, incluyendo los valores mínimos y máximos, los rangos de colores, la aguja (`NeedlePointer`) y las anotaciones (`GaugeAnnotation`).
 
 ### Explicación Detallada de la Interfaz de Usuario
 
