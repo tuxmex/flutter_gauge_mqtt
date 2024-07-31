@@ -86,8 +86,39 @@ class MqttService {
     }
   }
 }
-
 ```
+
+### Explicación Detallada del Código con Comentarios
+
+- **Importaciones**:
+  - `mqtt_client.dart`: Biblioteca principal para manejar las conexiones MQTT.
+  - `mqtt_server_client.dart`: Biblioteca para configurar el cliente MQTT que se conecta a un servidor.
+
+- **Clase `MqttService`**:
+  - `MqttServerClient client`: Variable que representa el cliente MQTT.
+
+- **Constructor `MqttService`**:
+  - `MqttService(String server, String clientId)`: Inicializa el cliente MQTT con el servidor especificado y un `clientId`.
+  - `client = MqttServerClient(server, '')`: Crea una instancia del cliente MQTT.
+  - `client.logging(on: true)`: Habilita el logging para el cliente MQTT.
+  - `client.setProtocolV311()`: Configura el cliente para usar el protocolo MQTT 3.1.1.
+  - `client.keepAlivePeriod = 20`: Configura el periodo de keep alive en 20 segundos.
+  - `MqttConnectMessage()`: Configura el mensaje de conexión con el `clientId`, indicando que debe empezar con una sesión limpia y configurando el QoS del mensaje de "última voluntad".
+  - `client.connectionMessage = connMessage`: Asigna el mensaje de conexión al cliente.
+
+- **Método `getTemperatureStream`**:
+  - `Stream<double> getTemperatureStream() async*`: Método asincrónico que retorna un stream de datos de temperatura.
+  - `try { await client.connect(); } catch (e) { ... }`: Intenta conectar al servidor MQTT. Si la conexión falla, desconecta el cliente y retorna.
+  - `if (client.connectionStatus?.state == MqttConnectionState.connected) { ... }`: Verifica si la conexión fue exitosa.
+  - `client.subscribe("temperature/topic", MqttQos.atLeastOnce)`: Se suscribe al tópico de temperatura con QoS 1.
+  - `await for (final c in client.updates!) { ... }`: Escucha los mensajes entrantes y emite los valores de temperatura.
+  - `final MqttPublishMessage recMess = c[0].payload as MqttPublishMessage`: Obtiene el mensaje publicado.
+  - `final String pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message)`: Convierte el payload del mensaje a una cadena de texto.
+  - `yield double.tryParse(pt) ?? 0.0`: Convierte la cadena de texto a un número de punto flotante (double) y lo emite en el stream.
+
+Este archivo `mqtt_service.dart` maneja la conexión al servidor MQTT, la suscripción al tópico de temperatura y la emisión de los datos de temperatura como un stream de valores double. Los comentarios detallados deberían ayudarte a entender cómo funciona cada parte del código.
+
+
 
 ### Paso 4: Implementar la Interfaz de Usuario
 
